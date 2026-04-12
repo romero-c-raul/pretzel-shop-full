@@ -47,5 +47,33 @@ if [ ! -d "$APP_DIR" ]; then
   git clone "$REPO_URL" "$APP_URL"
 fi
 
+echo "=== Backend setup ==="
+cd "$APP_DIR"/backend/
+npm install
+
+cat > .env << EOF
+PORT=3001
+NODE_ENV=production
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=pretzel_shop
+DB_USER=pretzel_user
+DB_PASSWORD=pretzel_password
+REDIS_HOST=localhost
+REDIS_PORT=6379
+CORS_ORIGIN=https://${VM_IP}
+EOF
+
+echo "=== Frontend setup ==="
+cd "$APP_DIR"/frontend/
+npm install
+echo "VITE_API_BASE_URL=https://${VM_IP}" > .env.local
+npm run build
+
+# Deploy frontend files to nginx
+sudo mkdir -p /var/www/pretzel-shop
+sudo cp -r dist/* /var/www/pretzel-shop/
+sudo chown -R www-data:www-data /var/www/pretzel-shop
+
 
 echo $APP_DIR
