@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-set -euo pipefail;
+set -euo pipefail
 
-IP=$(hostname -I | awk '{print $2}')
+VM_IP=$(hostname -I | awk '{print $2}')
 REPO_URL=${1:?Usage: bootstrap.sh <repository-url>}
 APP_DIR="/home/$(whoami)/pretzel-shop-full"
 
@@ -44,7 +44,7 @@ sudo systemctl enable --now nginx
 
 # Clone repo
 if [ ! -d "$APP_DIR" ]; then
-  git clone "$REPO_URL" "$APP_URL"
+  git clone "$REPO_URL" "$APP_DIR"
 fi
 
 echo "=== Backend setup ==="
@@ -63,6 +63,9 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 CORS_ORIGIN=https://${VM_IP}
 EOF
+
+echo "=== Running database migrations ==="
+npm run migrate
 
 echo "=== Frontend setup ==="
 cd "$APP_DIR"/frontend/
@@ -85,6 +88,7 @@ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -subj "/C=US/ST=State/L=City/O=PretzelShop/CN=pretzel-shop.local"
 
 # Configure NGINX
+sudo rm -f /etc/nginx/sites-enabled/default
 sudo tee /etc/nginx/sites-available/pretzel-shop > /dev/null << 'NGINX'
 server {
     listen 80;
@@ -168,5 +172,3 @@ sudo ufw status
 echo "=== Bootstrap complete ==="
 echo "Pretzel Shop is running at https://${VM_IP}"
 echo "Accept the self-signed certificate warning in your browser."
-
-echo $APP_DIR
