@@ -44,9 +44,24 @@ services:
       DB_PASSWORD: pretzel_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      CORS_ORIGIN: https://localhost
+      CORS_ORIGIN: http://192.168.56.2
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://192.168.56.2:3001
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
