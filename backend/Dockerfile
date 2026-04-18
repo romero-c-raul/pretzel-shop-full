@@ -3,5 +3,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY . .
+RUN chmod +x docker-entrypoint.sh
 EXPOSE 3001
-CMD ["node", "server.js"]
+CMD ["./docker-entrypoint.sh"]
