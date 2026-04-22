@@ -5,7 +5,8 @@ require('dotenv').config();
 const productsRouter = require('./routes/products');
 const cartRouter = require('./routes/cart');
 const ordersRouter = require('./routes/orders');
-
+const pool = require('./config/database');
+const redisClient = require('./config/redis');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -40,19 +41,44 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
+const gracefulShutdown = async () => {
+  console.log('Initiating graceful shutdown...');
+
+  setTimeout(() => {
+    console.warn('Forcing shutdown after 8 seconds');
+    process.exit(1);
+  }, 8000); // Force shutdown after 8 seconds due to SIGKILL after 10 seconds
+
+  server.close(async () => {
+    try {
+      await pool.end() // Close database pool connections
+    } catch (err) {
+      console.error('Error closing database pool:', err);
+    }
+    try {
+      await redisClient.quit() // Close Redis client connection
+    } catch (err) {
+      console.error('Error closing Redis client:', err);
+    }
+    console.log('Shutdown complete, exiting now.');
+    process.exit(0);
+  });
+};
+
+
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
-  process.exit(0);
+  await gracefulShutdown();
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('SIGINT signal received: closing HTTP server');
-  process.exit(0);
+  await gracefulShutdown();
 });
 
