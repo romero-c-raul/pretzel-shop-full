@@ -46,7 +46,7 @@ const server = app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-const gracefulShutdown = async () => {
+const gracefulShutdown = () => {
   console.log('Initiating graceful shutdown...');
 
   setTimeout(() => {
@@ -68,7 +68,7 @@ const gracefulShutdown = async () => {
     } catch (err) {
       console.error('Error closing Redis client:', err);
     }
-    
+
     console.log('Shutdown complete, exiting now.');
     process.exit(0);
   });
@@ -76,13 +76,13 @@ const gracefulShutdown = async () => {
 
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server');
-  await gracefulShutdown();
+  gracefulShutdown();
 });
 
-process.on('SIGINT', async () => {
+process.on('SIGINT', () => {
   console.log('SIGINT signal received: closing HTTP server');
-  await gracefulShutdown();
+  gracefulShutdown();
 });
 
