@@ -60,11 +60,15 @@ const gracefulShutdown = async () => {
     } catch (err) {
       console.error('Error closing database pool:', err);
     }
+
     try {
-      await redisClient.quit() // Close Redis client connection
+      if (redisClient.isOpen) {
+        await redisClient.quit(); // Close Redis client connection
+      }
     } catch (err) {
       console.error('Error closing Redis client:', err);
     }
+    
     console.log('Shutdown complete, exiting now.');
     process.exit(0);
   });
