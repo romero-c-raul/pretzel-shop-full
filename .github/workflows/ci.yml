@@ -1,0 +1,23 @@
+name: ci workflow
+
+# Trigger workflow when pushing to main or when creating a PR to main
+on:
+  push:
+    branches: [main] 
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }} # Only one workflow run allowed perf branch, per PR
+  cancel-in-progress: true
+
+permissions:
+  contents: read    # Only can read the repository contents
+  packages: write   # Permission needed to write to GHCR
+  id-token: write   # -- Pending, add explanation later
+  security-events: write # Allows us to edit/update code scanning alerts
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE_NAME: ${{ github.repository }}/pretzel-backend
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}/pretzel-frontend
