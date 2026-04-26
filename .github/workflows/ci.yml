@@ -8,7 +8,7 @@ on:
     branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }} # Only one workflow run allowed perf branch, per PR
+  group: ${{ github.workflow }}-${{ github.ref }} # Only one workflow run allowed per branch, per PR
   cancel-in-progress: true
 
 permissions:
@@ -66,7 +66,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
     - name: Docker metadata
-      id: meta
+      id: meta # this meta id can be used to reference the outputs of this step in later steps
       uses: docker/metadata-action@v5 # Can read GH context and generates metadata for images
       with:
         images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
@@ -74,3 +74,13 @@ jobs:
           type=sha,prefix=
           type=ref,event=branch
           type=ref,event=pr
+    - name: Build, scan and push backend image
+      id: build # this build id can be used to reference the outputs of this step in later steps
+      uses: docker/build-push-action@v6 # Equivalent to docker build and push (plus other features like caching and metadata)
+      with:
+        context: ./backend
+        push: ${{ github.event_name != 'pull_request'}} # Only push IF NOT a PR
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-to: type=gha,scope=backend,mode=max # Save the cache from this run for, including intermediate layers not just final image
+        cache-from: type=gha,scope=backend # Use the cache from previous runs of this workflow with the same scope
