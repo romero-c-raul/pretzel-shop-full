@@ -103,3 +103,53 @@ jobs:
         env:
           DIGEST: ${{ steps.build.outputs.digest }} # Get digest from build output
         run: cosign sign --yes "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}@${DIGEST}" # Sign the image we just built using the digest reference
+  build-scan-sign-frontend:
+    needs: lint-test-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3 # Enables docker buildx, useful for caching (not limited like docker build)
+      - uses: docker/login-action@v3  # Log in to GHCR and allows us to push images
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker metadata # Generate metadata to add to image during build
+        id: meta # this meta id can be used to reference the outputs of this step in later steps
+        uses: docker/metadata-action@v5 # Can read GH context and generates metadata for images
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=ref,event=pr
+      - name: Build and push frontend image
+        id: build # this build id can be used to reference the outputs of this step in later steps
+        uses: docker/build-push-action@v6 # Equivalent to docker build and push (plus other features like caching and metadata)
+        with:
+          context: ./frontend
+          push: ${{ github.event_name != 'pull_request'}} # Only push IF NOT a PR
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-to: type=gha,scope=frontend,mode=max # Save the cache from this run for, including intermediate layers not just final image
+          cache-from: type=gha,scope=frontend # Use the cache from previous runs of this workflow with the same scope
+      - name: Scan frontend image with Trivy
+        if: ${{ github.event_name != 'pull_request'}} # Only scan IF NOT a PR, to save time and resources.
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}@${{ steps.build.outputs.digest }} # Scan the image we just built, using the digest reference to ensure we scan the exact image we built
+          format: 'sarif' # GH security tab can read this format and display nicely
+          output: 'trivy-results.sarif' # Saves the result scans on the runner
+          severity: 'CRITICAL,HIGH' # Only report critical and high vulnerabilities to reduce noise
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ github.event_name != 'pull_request'}} # Only upload IF NOT a PR, since we didn't scan for PRs
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif # Upload the scan results from the previous step to the security tab
+      - uses: sigstore/cosign-installer@v3 # Install cosign, used to sign images
+      - name: Sign frontend image with cosign
+        if: ${{ github.event_name != 'pull_request'}}
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }} # Get digest from build output
+        run: cosign sign --yes "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}@${DIGEST}" # Sign the image we just built using the digest reference
+           
