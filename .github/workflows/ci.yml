@@ -84,3 +84,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-to: type=gha,scope=backend,mode=max # Save the cache from this run for, including intermediate layers not just final image
           cache-from: type=gha,scope=backend # Use the cache from previous runs of this workflow with the same scope
+      - name: Scan backend image with Trivy
+        if: ${{ github.event_name != 'pull_request'}} # Only scan IF NOT a PR, to save time and resources.
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}@${{ steps.build.outputs.digest }} # Scan the image we just built, using the digest reference to ensure we scan the exact image we built
+          format: 'sarif' # GH security tab can read this format and display nicely
+          output: 'trivy-results.sarif' # Saves the result scans on the runner
+          severity: 'CRITICAL,HIGH' # Only report critical and high vulnerabilities to reduce noise
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ github.event_name != 'pull_request'}} # Only upload IF NOT a PR, since we didn't scan for PRs
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif # Upload the scan results from the previous step to the security tab
+      - uses: sigstore/cosign-installer@v3 # Install cosign, used to sign images
+      - name: Sign backend image with cosign
+        if: ${{ github.event_name != 'pull_request'}}
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }} # Get digest from build output
+        run: cosign sign --yes "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}@${DIGEST}" # Sign the image we just built using the digest reference
