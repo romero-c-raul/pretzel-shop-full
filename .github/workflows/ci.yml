@@ -65,7 +65,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Docker metadata
+      - name: Docker metadata # Generate metadata to add to image during build
         id: meta # this meta id can be used to reference the outputs of this step in later steps
         uses: docker/metadata-action@v5 # Can read GH context and generates metadata for images
         with:
@@ -74,7 +74,7 @@ jobs:
             type=sha,prefix=
             type=ref,event=branch
             type=ref,event=pr
-      - name: Build, scan and push backend image
+      - name: Build and push backend image
         id: build # this build id can be used to reference the outputs of this step in later steps
         uses: docker/build-push-action@v6 # Equivalent to docker build and push (plus other features like caching and metadata)
         with:
