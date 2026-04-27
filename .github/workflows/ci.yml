@@ -4,8 +4,16 @@ name: ci workflow
 on:
   push:
     branches: [main] 
+    paths:
+      - 'backend/**' # Only trigger on changes to backend
+      - 'frontend/**' # Only trigger on changes to frontend
+      - '.github/workflows/**' # Also trigger if there are changes to the workflow file itself, to ensure changes to the workflow are tested
   pull_request:
     branches: [main]
+    paths:
+      - 'backend/**' # Only trigger on changes to backend
+      - 'frontend/**' # Only trigger on changes to frontend
+      - '.github/workflows/**' # Also trigger if there are changes to the workflow file itself, to ensure changes to the workflow are tested
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }} # Only one workflow run allowed per branch, per PR
@@ -16,6 +24,7 @@ permissions:
   packages: write   # Permission needed to write to GHCR
   id-token: write   # -- Pending, add explanation later
   security-events: write # Allows us to edit/update code scanning alerts
+  pull-requests: write # Allows us to write comments on PRs with the results of linting and testing
 
 env:
   REGISTRY: ghcr.io
@@ -36,8 +45,27 @@ jobs:
           cache: "npm" # Cache node modules to speed up subsequent runs
           cache-dependency-path: backend/package-lock.json  # Cache node modules based on package-lock.json
       - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm test --if-present
+      - name: Lint backend code
+        id: lint-backend
+        run: npm run lint --if-present
+      - name: Lint failed
+        if: always() && steps.lint-backend.outcome == 'failure' # Only run this step if linting failed
+        run: echo "::error title=Backend Linting Failed::Run 'npm run lint' locally to see the errors and fix them before pushing again."
+      - name: Test backend code
+        id: test-backend
+        run: npm test --if-present
+      - name: Test failed
+        if: always() && steps.test-backend.outcome == 'failure' # Only run this step if tests failed
+        run: echo "::error title=Backend Tests Failed::Run 'npm test' locally to see the errors and fix them before pushing again."
+      - name: Lint and test summary
+        if: always() # Always run this step, even if previous steps fail
+        run: |
+          echo "## Backend lint and test summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Outcome |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ steps.lint-backend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ steps.test-backend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
   lint-test-frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -51,9 +79,53 @@ jobs:
           cache: "npm" # Cache node modules to speed up subsequent runs
           cache-dependency-path: frontend/package-lock.json  # Cache node modules based on package-lock.json
       - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm test --if-present
-      - run: npm run build
+      - name: Lint frontend code
+        id: lint-frontend
+        run: npm run lint --if-present
+      - name: Lint failed
+        if: ${{ steps.lint-frontend.outcome == 'failure' }} # Only run this step if linting failed
+        run: echo "::error title=Frontend Linting Failed::Run 'npm run lint' locally to see the errors and fix them before pushing again."
+      - name: Test frontend code
+        id: test-frontend
+        run: npm test --if-present
+      - name: Test failed
+        if: ${{ steps.test-frontend.outcome == 'failure' }} # Only run this step if tests failed
+        run: echo "::error title=Frontend Tests Failed::Run 'npm test' locally to see the errors and fix them before pushing again."
+      - name: Build frontend code
+        id: build-frontend
+        run: npm run build
+      - name: Lint and test summary
+        if: always() # Always run this step, even if previous steps fail
+        run: |
+          echo "## Frontend lint and test summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Outcome |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ steps.lint-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ steps.test-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ steps.build-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          
+  write-to-pr:
+    needs: [lint-test-backend, lint-test-frontend] # This job only runs after lint and test jobs are done
+    if: always() && github.event_name == 'pull_request' # Only run this job for PRs, since we are writing a comment on the PR with the results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write lint and test results to PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## CI Results Summary
+
+            - Backend Lint/Test: ${{ needs.lint-test-backend.result }}
+            - Frontend Lint/Test: ${{ needs.lint-test-frontend.result }}
+            `;
+
+            await github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+            
   build-scan-sign-backend:
     needs: lint-test-backend
     runs-on: ubuntu-latest
@@ -103,6 +175,7 @@ jobs:
         env:
           DIGEST: ${{ steps.build.outputs.digest }} # Get digest from build output
         run: cosign sign --yes "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}@${DIGEST}" # Sign the image we just built using the digest reference
+
   build-scan-sign-frontend:
     needs: lint-test-frontend
     runs-on: ubuntu-latest
