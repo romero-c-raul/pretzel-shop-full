@@ -41,13 +41,13 @@ jobs:
         id: lint-backend
         run: npm run lint --if-present
       - name: Lint failed
-        if: ${{ steps.lint-backend.outcome == 'failure' }} # Only run this step if linting failed
+        if: always() && steps.lint-backend.outcome == 'failure' # Only run this step if linting failed
         run: echo "::error title=Backend Linting Failed::Run 'npm run lint' locally to see the errors and fix them before pushing again."
       - name: Test backend code
         id: test-backend
         run: npm test --if-present
       - name: Test failed
-        if: ${{ steps.test-backend.outcome == 'failure' }} # Only run this step if tests failed
+        if: always() && steps.test-backend.outcome == 'failure' # Only run this step if tests failed
         run: echo "::error title=Backend Tests Failed::Run 'npm test' locally to see the errors and fix them before pushing again."
       - name: Lint and test summary
         if: always() # Always run this step, even if previous steps fail
