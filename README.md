@@ -7,3 +7,5 @@ A full-stack pretzel ordering app built with Express, PostgreSQL, Redis, and Rea
 - Database: PostgreSQL
 - Cache: Redis
 
+## About
+This project is used to explore DevOps concepts
