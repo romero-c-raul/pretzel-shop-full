@@ -39,11 +39,7 @@ jobs:
       - run: npm ci
       - name: Lint backend code
         id: lint-backend
-        run: |
-          npm run lint --if-present && {
-            echo "::error title=Backend Linting Failed::Run 'npm run lint' locally to see the errors and fix them before pushing again."
-            exit 1
-          }
+        run: npm run lint --if-present
       - name: Lint failed
         if: always() && steps.lint-backend.outcome == 'failure' # Only run this step if linting failed
         run: echo "::error title=Backend Linting Failed::Run 'npm run lint' locally to see the errors and fix them before pushing again."
