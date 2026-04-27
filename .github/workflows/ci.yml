@@ -36,8 +36,20 @@ jobs:
           cache: "npm" # Cache node modules to speed up subsequent runs
           cache-dependency-path: backend/package-lock.json  # Cache node modules based on package-lock.json
       - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm test --if-present
+      - name: Lint backend code
+        id: lint-backend
+        run: npm run lint --if-present
+      - name: Test backend code
+        id: test-backend
+        run: npm test --if-present
+      - name: Lint and test summary
+        if: always() # Always run this step, even if previous steps fail
+        run: |
+          echo "## Backend lint and test summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Outcome |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ steps.lint-backend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ steps.test-backend.outcome }} |" >> $GITHUB_STEP_SUMMARY
   lint-test-frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -51,9 +63,24 @@ jobs:
           cache: "npm" # Cache node modules to speed up subsequent runs
           cache-dependency-path: frontend/package-lock.json  # Cache node modules based on package-lock.json
       - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm test --if-present
-      - run: npm run build
+      - name: Lint frontend code
+        id: lint-frontend
+        run: npm run lint --if-present
+      - name: Test frontend code
+        id: test-frontend
+        run: npm test --if-present
+      - name: Build frontend code
+        id: build-frontend
+        run: npm run build
+      - name: Lint and test summary
+        if: always() # Always run this step, even if previous steps fail
+        run: |
+          echo "## Frontend lint and test summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Outcome |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ steps.lint-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ steps.test-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ steps.build-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
   build-scan-sign-backend:
     needs: lint-test-backend
     runs-on: ubuntu-latest
