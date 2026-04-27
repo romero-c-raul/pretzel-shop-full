@@ -86,4 +86,3 @@ process.on('SIGINT', () => {
   gracefulShutdown();
 });
 
-undeclaredVariable = "this will break lint";
