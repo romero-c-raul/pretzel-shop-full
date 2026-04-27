@@ -16,6 +16,7 @@ permissions:
   packages: write   # Permission needed to write to GHCR
   id-token: write   # -- Pending, add explanation later
   security-events: write # Allows us to edit/update code scanning alerts
+  pull-requests: write # Allows us to write comments on PRs with the results of linting and testing
 
 env:
   REGISTRY: ghcr.io
@@ -56,6 +57,7 @@ jobs:
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ steps.lint-backend.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test | ${{ steps.test-backend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
   lint-test-frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -93,6 +95,29 @@ jobs:
           echo "| Lint | ${{ steps.lint-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test | ${{ steps.test-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ steps.build-frontend.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          
+  write-to-pr:
+    needs: [lint-test-backend, lint-test-frontend] # This job only runs after lint and test jobs are done
+    if: always() && github.event_name == 'pull_request' # Only run this job for PRs, since we are writing a comment on the PR with the results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write lint and test results to PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## CI Results Summary
+
+            - Backend Lint/Test: ${{ needs.lint-test-backend.result }}
+            - Frontend Lint/Test: ${{ needs.lint-test-frontend.result }}
+            `;
+
+            await github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+            
   build-scan-sign-backend:
     needs: lint-test-backend
     runs-on: ubuntu-latest
@@ -142,6 +167,7 @@ jobs:
         env:
           DIGEST: ${{ steps.build.outputs.digest }} # Get digest from build output
         run: cosign sign --yes "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}@${DIGEST}" # Sign the image we just built using the digest reference
+        
   build-scan-sign-frontend:
     needs: lint-test-frontend
     runs-on: ubuntu-latest
