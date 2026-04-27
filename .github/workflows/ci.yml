@@ -39,7 +39,10 @@ jobs:
       - run: npm ci
       - name: Lint backend code
         id: lint-backend
-        run: npm run lint --if-present
+        run: npm run lint --if-present || {
+          echo "::error title=Linting Failed::Linting errors found. Please run 'npm run lint' locally to see the errors and fix them before pushing again."
+          exit 1
+          }
       - name: Lint failed
         if: ${{ steps.lint-backend.outcome == 'failure' }} # Only run this step if linting failed
         run: echo "::error title=Backend Linting Failed::Run 'npm run lint' locally to see the errors and fix them before pushing again."
@@ -167,7 +170,7 @@ jobs:
         env:
           DIGEST: ${{ steps.build.outputs.digest }} # Get digest from build output
         run: cosign sign --yes "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}@${DIGEST}" # Sign the image we just built using the digest reference
-        
+
   build-scan-sign-frontend:
     needs: lint-test-frontend
     runs-on: ubuntu-latest
