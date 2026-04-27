@@ -4,8 +4,16 @@ name: ci workflow
 on:
   push:
     branches: [main] 
+    paths:
+      - 'backend/**' # Only trigger on changes to backend
+      - 'frontend/**' # Only trigger on changes to frontend
+      - '.github/workflows/**' # Also trigger if there are changes to the workflow file itself, to ensure changes to the workflow are tested
   pull_request:
     branches: [main]
+    paths:
+      - 'backend/**' # Only trigger on changes to backend
+      - 'frontend/**' # Only trigger on changes to frontend
+      - '.github/workflows/**' # Also trigger if there are changes to the workflow file itself, to ensure changes to the workflow are tested
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }} # Only one workflow run allowed per branch, per PR
