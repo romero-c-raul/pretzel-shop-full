@@ -40,49 +40,52 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Start server
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
-
-const gracefulShutdown = () => {
-  console.log('Initiating graceful shutdown...');
-
-  setTimeout(() => {
-    console.warn('Forcing shutdown after 8 seconds');
-    process.exit(1);
-  }, 8000); // Force shutdown after 8 seconds due to SIGKILL after 10 seconds
-
-  server.close(async () => {
-    try {
-      await pool.end() // Close database pool connections
-    } catch (err) {
-      console.error('Error closing database pool:', err);
-    }
-
-    try {
-      if (redisClient.isOpen) {
-        await redisClient.quit(); // Close Redis client connection
-      }
-    } catch (err) {
-      console.error('Error closing Redis client:', err);
-    }
-
-    console.log('Shutdown complete, exiting now.');
-    process.exit(0);
+if (require.main === module) {
+  
+  // Start server
+  const server = app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
-};
+  
+  const gracefulShutdown = () => {
+    console.log('Initiating graceful shutdown...');
+  
+    setTimeout(() => {
+      console.warn('Forcing shutdown after 8 seconds');
+      process.exit(1);
+    }, 8000); // Force shutdown after 8 seconds due to SIGKILL after 10 seconds
+  
+    server.close(async () => {
+      try {
+        await pool.end() // Close database pool connections
+      } catch (err) {
+        console.error('Error closing database pool:', err);
+      }
+  
+      try {
+        if (redisClient.isOpen) {
+          await redisClient.quit(); // Close Redis client connection
+        }
+      } catch (err) {
+        console.error('Error closing Redis client:', err);
+      }
+  
+      console.log('Shutdown complete, exiting now.');
+      process.exit(0);
+    });
+  };
+  
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    gracefulShutdown();
+  });
+  
+  process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    gracefulShutdown();
+  });
+}
 
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  gracefulShutdown();
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  gracefulShutdown();
-});
-
+module.exports = { app }; // Export app for testing purposes
