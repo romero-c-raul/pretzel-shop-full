@@ -2,14 +2,10 @@ const { describe, it, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../../server');
-const pool = require('../../config/database');
-const redisClient = require('../../config/redis');
+const { teardown } = require('../helpers/db');
 
 describe('GET /health', () => {
-  after(async () => {
-    await pool.end();
-    if (redisClient.isOpen) await redisClient.quit();
-  });
+  after(teardown);
 
   it('returns 200 with status ok', async () => {
     const res = await request(app)
