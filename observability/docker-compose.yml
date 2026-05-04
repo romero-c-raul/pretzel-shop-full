@@ -1,0 +1,30 @@
+services:
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.149.0
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+      - "13133:13133"
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    networks: [observability]
+  
+  prometheus:
+    image: prom/prometheus:v3.10.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    depends_on:
+      - otel-collector
+    networks: [observability]
+
+networks:
+  observability:
+    name: pretzel_observability
+    driver: bridge
+    
