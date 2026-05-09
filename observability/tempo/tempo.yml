@@ -1,0 +1,26 @@
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+
+ingester:
+  trace_idle_period: 10s # flush a trace 10 seconds after the last span arrives
+  max_block_bytes: 1_000_000 # flush after 1MB of data
+  max_block_duration: 5m # flush after 5 minutes
+
+compactor:
+  compaction:
+    compacted_block_retention: 1h # source blocks (pre-compaction) are retained for 1 hour after compaction
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /tmp/tempo/wal
+    local:
+      path: /tmp/tempo/blocks
