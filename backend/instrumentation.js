@@ -9,8 +9,10 @@ const {
   OTLPMetricExporter,
 } = require('@opentelemetry/exporter-metrics-otlp-http');
 const { PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics');
+const Pyroscope = require('@pyroscope/nodejs');
 
 const otlpBase = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
+const pyroscopeServer = process.env.PYROSCOPE_SERVER_URL || 'http://localhost:4040';
 
 const traceExporter = new OTLPTraceExporter({
   url: `${otlpBase}/v1/traces`,
@@ -40,3 +42,12 @@ process.on('SIGTERM', () => {
     .catch((error) => console.log('Error terminating tracing and metrics', error))
     .finally(() => process.exit(0));
 });
+
+if (process.env.ENABLE_PROFILING === 'true') {
+  Pyroscope.init({
+    serverAddress: pyroscopeServer,
+    appName: process.env.OTEL_SERVICE_NAME || 'pretzel-shop',
+  });
+
+  Pyroscope.start();
+}
