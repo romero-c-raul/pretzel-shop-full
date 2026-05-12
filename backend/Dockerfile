@@ -12,6 +12,7 @@ COPY ./config ./config
 COPY ./routes ./routes
 COPY ./scripts ./scripts
 COPY ./docker-entrypoint.sh ./
+COPY ./instrumentation.js ./
 COPY server.js ./
 RUN chmod +x docker-entrypoint.sh
 USER appuser
