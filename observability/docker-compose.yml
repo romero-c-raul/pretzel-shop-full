@@ -35,7 +35,7 @@ services:
     networks: [observability]
   
   promtail:
-    image: grafana/promtail:3.7.1
+    image: grafana/promtail:3.6.8
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
