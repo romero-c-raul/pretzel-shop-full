@@ -5,4 +5,4 @@ echo "Executing Docker entrypoint script..."
 npm run migrate
 
 echo "Starting server..."
-exec node server.js
+exec node -r ./instrumentation.js server.js

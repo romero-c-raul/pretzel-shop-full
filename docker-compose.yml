@@ -45,6 +45,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CORS_ORIGIN: http://192.168.56.2
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PYROSCOPE_SERVER_URL: http://pyroscope:4040
+      OTEL_SERVICE_NAME: pretzel-backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +60,10 @@ services:
         timeout: 5s
         retries: 3
         start_period: 10s
+    networks:
+      - default
+      - observability
+
 
   frontend:
     build:
@@ -72,3 +79,8 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  observability:
+    external: true
+    name: pretzel_observability
