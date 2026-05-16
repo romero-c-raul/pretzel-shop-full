@@ -51,6 +51,18 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate",
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(otel_http_server_duration_milliseconds_count{http_status_code=~\"5..\"}[5m])) / sum(rate(otel_http_server_duration_milliseconds_count[5m]))",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "time": { "from": "now-1h", "to": "now" }
