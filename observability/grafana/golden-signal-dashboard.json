@@ -5,9 +5,15 @@
   "version": 1,
   "panels": [
     {
+      "type": "row",
+      "title": "Traffic",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
       "type": "timeseries",
       "title": "HTTP request rate",
-      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 1, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -18,9 +24,15 @@
       ]
     },
     {
+      "type": "row",
+      "title": "Latency",
+      "gridPos": { "x": 0, "y": 9, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
       "type": "timeseries",
       "title": "HTTP latency (ms)",
-      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -41,9 +53,28 @@
       ]
     },
     {
+      "type": "table",
+      "title": "Traces (Tempo)",
+      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 8 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "queryType": "nativeSearch",
+          "serviceName": "pretzel-backend",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Errors",
+      "gridPos": { "x": 0, "y": 17, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
       "type": "logs",
       "title": "App errors (Loki)",
-      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 8 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
@@ -55,7 +86,7 @@
     {
       "type": "timeseries",
       "title": "Error rate",
-      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -63,6 +94,30 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "row",
+      "title": "Saturation",
+      "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
+      "type": "text",
+      "title": "DB connection pool (saturation)",
+      "gridPos": { "x": 0, "y": 35, "w": 12, "h": 4 },
+      "options": {
+        "content": "Add postgres_exporter",
+        "mode": "markdown"
+      }
+    },
+    {
+      "type": "text",
+      "title": "Redis memory (saturation)",
+      "gridPos": { "x": 12, "y": 35, "w": 12, "h": 4 },
+      "options": {
+        "content": "Add redis_exporter",
+        "mode": "markdown"
+      }
     }
   ],
   "time": { "from": "now-1h", "to": "now" }
