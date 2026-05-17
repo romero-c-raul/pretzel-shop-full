@@ -63,6 +63,24 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "text",
+      "title": "DB connection pool (saturation)",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 4 },
+      "options": {
+        "content": "Add postgres_exporter",
+        "mode": "markdown"
+      }
+    },
+    {
+      "type": "text",
+      "title": "Redis memory (saturation)",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 4 },
+      "options": {
+        "content": "Add redis_exporter",
+        "mode": "markdown"
+      }
     }
   ],
   "time": { "from": "now-1h", "to": "now" }
