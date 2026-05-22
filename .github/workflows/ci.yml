@@ -201,6 +201,8 @@ jobs:
         uses: docker/build-push-action@v6 # Equivalent to docker build and push (plus other features like caching and metadata)
         with:
           context: ./frontend
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.PRODUCTION_VITE_API_BASE_URL }}
           push: ${{ github.event_name != 'pull_request'}} # Only push IF NOT a PR
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
