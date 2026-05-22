@@ -1,0 +1,78 @@
+name: pretzel-app
+
+services:
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: pretzel_shop
+      POSTGRES_USER: pretzel_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pretzel_user -d pretzel_shop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  redis:
+    image: redis:8-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/romero-c-raul/pretzel-shop-full/pretzel-backend:${IMAGE_TAG}
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: pretzel_shop
+      DB_USER: pretzel_user
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PYROSCOPE_SERVER_URL: http://pyroscope:4040
+      OTEL_SERVICE_NAME: pretzel-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    stop_grace_period: 15s
+    healthcheck:
+        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+        interval: 15s
+        timeout: 5s
+        retries: 3
+        start_period: 10s
+    networks:
+      - default
+      - observability
+
+
+  frontend:
+    image: ghcr.io/romero-c-raul/pretzel-shop-full/pretzel-frontend:${IMAGE_TAG}
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  observability:
+    external: true
+    name: pretzel_observability
