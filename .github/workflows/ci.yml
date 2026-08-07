@@ -201,6 +201,8 @@ jobs:
         uses: docker/build-push-action@v6 # Equivalent to docker build and push (plus other features like caching and metadata)
         with:
           context: ./frontend
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.PRODUCTION_VITE_API_BASE_URL }}
           push: ${{ github.event_name != 'pull_request'}} # Only push IF NOT a PR
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -225,4 +227,43 @@ jobs:
         env:
           DIGEST: ${{ steps.build.outputs.digest }} # Get digest from build output
         run: cosign sign --yes "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}@${DIGEST}" # Sign the image we just built using the digest reference
-           
+
+  deploy:
+    needs: [build-scan-sign-backend, build-scan-sign-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy Compose to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          source: "deploy/docker-compose.prod.yml"
+          target: "/opt/pretzel-shop/docker-compose.prod.yml"
+
+      - name: Pull and restart app services
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          envs: IMAGE_TAG,GHCR_PULL_TOKEN,GHCR_USER
+          script: |
+            set -euo pipefail
+            cd /opt/pretzel-shop
+            echo "$GHCR_PULL_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            export IMAGE_TAG="$IMAGE_TAG"
+            docker compose -f docker-compose.prod.yml -p pretzel_app pull backend frontend
+            docker compose -f docker-compose.prod.yml -p pretzel_app up -d --no-deps backend frontend
+            docker logout ghcr.io
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
