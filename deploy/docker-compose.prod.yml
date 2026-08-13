@@ -56,10 +56,6 @@ services:
         timeout: 5s
         retries: 3
         start_period: 10s
-    networks:
-      - default
-      - observability
-
 
   frontend:
     image: ghcr.io/romero-c-raul/pretzel-shop-full/pretzel-frontend:${IMAGE_TAG}
@@ -71,8 +67,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-
-networks:
-  observability:
-    external: true
-    name: pretzel_observability
