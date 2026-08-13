@@ -19,7 +19,7 @@ const Home = () => {
           The World's Best Pretzels.
         </h1>
         <p className="mt-4 text-lg md:text-xl text-amber-200 max-w-2xl mx-auto">
-          Freshly baked, perfectly twisted, and delivered straight to your door. Taste the tradition.
+          Freshly baked, perfectly twisted, and delivered straight to your door. Taste the tradition!
         </p>
         <Link
           to="/products"
