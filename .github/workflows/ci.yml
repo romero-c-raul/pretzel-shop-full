@@ -245,7 +245,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
           source: "deploy/docker-compose.prod.yml"
-          target: "/opt/pretzel-shop",
+          target: "/opt/pretzel-shop"
           strip_components: 1 # Remove the first directory from the path when copying to the target, so that docker-compose.prod.yml is copied directly to /opt/pretzel-shop instead of /opt/pretzel-shop/deploy/docker-compose.prod.yml
 
       - name: Pull and restart app services
