@@ -260,7 +260,7 @@ jobs:
             set -euo pipefail
             cd /opt/pretzel-shop
             echo "$GHCR_PULL_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            export IMAGE_TAG="$IMAGE_TAG"
+            export IMAGE_TAG="${IMAGE_TAG:0:7}"
             docker compose -f docker-compose.prod.yml -p pretzel_app pull backend frontend
             docker compose -f docker-compose.prod.yml -p pretzel_app up -d --no-deps backend frontend
             docker logout ghcr.io
