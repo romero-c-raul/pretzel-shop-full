@@ -40,7 +40,7 @@ services:
     image: grafana/tempo:2.10.3
     volumes:
       - ./tempo/config.yaml:/etc/tempo/config.yaml:ro
-      - tempo_data:/tmp/tempo
+      - tempo_data:/var/tempo
     command: ["-config.file=/etc/tempo/config.yaml"]
     networks: [observability]
 
