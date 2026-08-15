@@ -100,11 +100,57 @@ jobs:
           output: 'trivy-results/grafana.sarif'
           severity: 'CRITICAL,HIGH'
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      # One upload per file, each with its own category — GitHub no longer combines multiple SARIF
+      # runs sharing a category into one upload (see github.blog/changelog/2025-07-21), and every
+      # Trivy scan above defaults to the same implicit category, so a single directory-wide upload fails.
+      - name: Upload otel-collector scan results
         if: ${{ github.event_name != 'pull_request' }}
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trivy-results # Directory of SARIF files, uploaded together
+          sarif_file: trivy-results/otel-collector.sarif
+          category: trivy-otel-collector
+
+      - name: Upload prometheus scan results
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results/prometheus.sarif
+          category: trivy-prometheus
+
+      - name: Upload loki scan results
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results/loki.sarif
+          category: trivy-loki
+
+      - name: Upload promtail scan results
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results/promtail.sarif
+          category: trivy-promtail
+
+      - name: Upload tempo scan results
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results/tempo.sarif
+          category: trivy-tempo
+
+      - name: Upload pyroscope scan results
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results/pyroscope.sarif
+          category: trivy-pyroscope
+
+      - name: Upload grafana scan results
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results/grafana.sarif
+          category: trivy-grafana
 
   deploy:
     needs: validate
