@@ -3,17 +3,17 @@ name: ci workflow
 # Trigger workflow when pushing to main or when creating a PR to main
 on:
   push:
-    branches: [main] 
+    branches: [main]
     paths:
       - 'backend/**' # Only trigger on changes to backend
       - 'frontend/**' # Only trigger on changes to frontend
-      - '.github/workflows/**' # Also trigger if there are changes to the workflow file itself, to ensure changes to the workflow are tested
+      - '.github/workflows/ci.yml' # Also trigger if this workflow file itself changes, to ensure changes to it are tested — scoped to this file only, not the whole workflows/ folder, so other workflows (e.g. deploy-observability.yml) can't cross-trigger this one
   pull_request:
     branches: [main]
     paths:
       - 'backend/**' # Only trigger on changes to backend
       - 'frontend/**' # Only trigger on changes to frontend
-      - '.github/workflows/**' # Also trigger if there are changes to the workflow file itself, to ensure changes to the workflow are tested
+      - '.github/workflows/ci.yml' # Also trigger if this workflow file itself changes, to ensure changes to it are tested — scoped to this file only, not the whole workflows/ folder, so other workflows (e.g. deploy-observability.yml) can't cross-trigger this one
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }} # Only one workflow run allowed per branch, per PR
