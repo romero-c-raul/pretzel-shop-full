@@ -2,7 +2,7 @@
 
   ## Prod deployment
 
-  `docker-compose.prod.yml` is the VM-deployed variant of `docker-compose.yml` — Grafana admin credentials externalized to `${VAR}` (set in the VM's `.env`), only Grafana's port exposed (bound to `127.0.0.1`, reachable via SSH tunnel), and named volumes added for Prometheus/Loki/Tempo/Grafana so data survives container recreation. Deployed by `.github/workflows/deploy-observability.yml`, isolated from the app's own deploy pipeline.
+  `docker-compose.prod.yml` is the VM-deployed variant of `docker-compose.yml` — Grafana admin credentials externalized to `${VAR}` (set in the VM's `.env`), only Grafana's port exposed (bound to `127.0.0.1`, reachable via SSH tunnel), and named volumes added for Prometheus/Loki/Tempo/Grafana so data survives container recreation. Deployed by `.github/workflows/deploy-observability.yml`, isolated from the app's own deploy pipeline. Tempo's storage path is `/var/tempo` (the image's own non-root-owned path), not `/tmp/tempo` — see commit history for why.
 
   ## Environment Variables
 
