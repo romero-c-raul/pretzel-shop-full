@@ -1,0 +1,140 @@
+name: deploy observability
+
+# Trigger workflow when pushing to main or when creating a PR to main, scoped to observability changes only
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'observability/**' # Only trigger on changes to the observability stack
+      - '.github/workflows/deploy-observability.yml' # Also trigger if this workflow file changes, to ensure changes to it are tested
+  pull_request:
+    branches: [main]
+    paths:
+      - 'observability/**'
+      - '.github/workflows/deploy-observability.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }} # Only one workflow run allowed per branch, per PR
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # Needed to upload Trivy SARIF results to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate observability-prod compose file
+        run: docker compose -f observability/docker-compose.prod.yml config --quiet
+        env:
+          GF_SECURITY_ADMIN_USER: placeholder # Dummy values so interpolation succeeds — real values only ever live in the VM's .env
+          GF_SECURITY_ADMIN_PASSWORD: placeholder
+
+      # All 7 services run vendor images we don't build ourselves — scanned the same as our own images per standard practice
+      - name: Create Trivy results directory
+        if: ${{ github.event_name != 'pull_request' }} # Only scan IF NOT a PR, to save time and resources — mirrors ci.yml
+        run: mkdir -p trivy-results
+
+      - name: Scan otel-collector
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: otel/opentelemetry-collector-contrib:0.149.0
+          format: 'sarif'
+          output: 'trivy-results/otel-collector.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan prometheus
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: prom/prometheus:v3.10.0
+          format: 'sarif'
+          output: 'trivy-results/prometheus.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan loki
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: grafana/loki:3.7.1
+          format: 'sarif'
+          output: 'trivy-results/loki.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan promtail
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: grafana/promtail:3.6.8
+          format: 'sarif'
+          output: 'trivy-results/promtail.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan tempo
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: grafana/tempo:2.10.3
+          format: 'sarif'
+          output: 'trivy-results/tempo.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan pyroscope
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: grafana/pyroscope:1.19.1
+          format: 'sarif'
+          output: 'trivy-results/pyroscope.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan grafana
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: grafana/grafana:12.4.2
+          format: 'sarif'
+          output: 'trivy-results/grafana.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results # Directory of SARIF files, uploaded together
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy observability stack to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          source: "observability/**"
+          target: "/opt/pretzel-observability"
+          strip_components: 1 # Remove the leading "observability/" path segment so files land directly under /opt/pretzel-observability
+
+      - name: Pull and restart observability stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          script: |
+            set -euo pipefail
+            cd /opt/pretzel-observability
+            docker compose -f docker-compose.prod.yml -p pretzel_observability pull
+            docker compose -f docker-compose.prod.yml -p pretzel_observability up -d
