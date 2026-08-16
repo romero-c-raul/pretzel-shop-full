@@ -1,6 +1,6 @@
 # Pretzel Shop Backend API
 
-Backend API for the Pretzel Shop e-commerce application built with Node.js, Express, PostgreSQL, and Redis. Traces, metrics, and profiles ship via OpenTelemetry and Pyroscope to the observability stack, reachable in prod because `backend` joins both the `default` and `pretzel_observability` Docker networks.
+Backend API for the Pretzel Shop e-commerce application built with Node.js, Express, PostgreSQL, and Redis. Traces and metrics ship via OpenTelemetry to the observability stack, reachable in prod because `backend` joins both the `default` and `pretzel_observability` Docker networks. Pyroscope profiling is wired in code but gated behind `ENABLE_PROFILING=true`, unset in prod — deliberately left off for now.
 
 ## Features
 
