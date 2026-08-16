@@ -4,6 +4,7 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.149.0
+    broken: [this bracket never closes
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     command: ["--config=/etc/otel-collector-config.yaml"]
