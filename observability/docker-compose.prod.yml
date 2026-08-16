@@ -60,6 +60,7 @@ services:
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
+    stop_grace_period: 15s
     depends_on:
       - prometheus
       - loki
